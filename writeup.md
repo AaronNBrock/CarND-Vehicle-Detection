@@ -8,7 +8,7 @@
 The goals / steps of this project are the following:
 
 * Perform a Histogram of Oriented Gradients (HOG) feature extraction on a labeled training set of images and train a classifier Linear SVM classifier
-* Optionally, you can also apply a color transform and append binned color features, as well as histograms of color, to your HOG feature vector. 
+* Optionally, you can also apply a color transform and append binned color features, as well as histograms of color, to your HOG feature vector.
 * Note: for those first two steps don't forget to normalize your features and randomize a selection for training and testing.
 * Implement a sliding-window technique and use your trained classifier to search for vehicles in images.
 * Run your pipeline on a video stream (start with the test_video.mp4 and later implement on full project_video.mp4) and create a heat map of recurring detections frame by frame to reject outliers and follow detected vehicles.
@@ -16,21 +16,23 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 [image1]: ./examples/car_not_car.png
-[image2]: ./examples/HOG_example.jpg
-[image3]: ./examples/sliding_windows.jpg
-[image4]: ./examples/sliding_window.jpg
-[image5]: ./examples/bboxes_and_heat.png
-[image6]: ./examples/labels_map.png
-[image7]: ./examples/output_bboxes.png
+[blurred]: ./writeup-images/blurred.png
+[boxes]: ./writeup-images/boxes.png
+[boxes_cropped]: ./writeup-images/boxes_cropped.png
+[cropped]: ./writeup-images/cropped.png
+[heatmap]: ./writeup-images/heatmap.png
+[labeled]: ./writeup-images/labeled.png
+[original]: ./writeup-images/original.png
+[scaled]: ./writeup-images/scaled.png
 [video1]: ./project_video.mp4
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
-### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
+### Here I will consider the rubric points individually and describe how I addressed each point in my implementation. 
 
 ---
 ### Writeup / README
 
-#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Vehicle-Detection/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
+#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Vehicle-Detection/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point. 
 
 You're reading it!
 
@@ -38,41 +40,86 @@ You're reading it!
 
 #### 1. Explain how (and identify where in your code) you extracted HOG features from the training images.
 
-The code for this step is contained in the first code cell of the IPython notebook (or in lines # through # of the file called `some_file.py`).  
+Instead of using the HOG function provided by `cv2`, I used a Convolutional Neural Network.  The HOG features (or at least hog like features) are extracted through the first few layers of the neural network.
 
-I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
+_the entire network definition can be found in the `create_model()` function of the notebook_
 
-![alt text][image1]
+<insert visualization of the network>* (I tried to get a visualization of the network, but it was taking too long to figure out.)
 
-I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
+I started by reading in all the `vehicle` and `non-vehicle` locations as a `glob`.  Then, iterated over that glob and loaded the images, converted them to RGB space and augmented them by flipping the images and randomly zooming in on part of the image in order to allow for more robust training and to allow the network to work well on different sized cars.
 
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
+_this augmentation can be found in the `agument()` function in the notebook.  (yes, I know I misspelled it)_
 
-
-![alt text][image2]
 
 #### 2. Explain how you settled on your final choice of HOG parameters.
 
-I tried various combinations of parameters and...
+The Network learns these parameters it's self through gradient decent.  And, regarding how I designed my network, I would like to say that my network design has some philosophy behind it. However, the truth is I tried various combinations of hyperparameters and layers and this one just worked the best.  It should be noted that I did **only** used Conv2D, MaxPooling2D and Dropout layers, all of which can take in a variable sized input.
 
 #### 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
-I trained a linear SVM using...
+_this can be found under the "Train Model" header of the notebook_
+
+To train the network in keras it's pretty straight forward, I used a Mean Squared Error and an Adam Optimizer and ran it 10 times over the entire dataset (including the augmented images).
 
 ### Sliding Window Search
 
 #### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
-I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
+After training the images on the 64x64x3 training images, I then ran it over the entire region of interest in the image.  The reason I can do this is because all of my layers allowed for variable sized input.  This has the nice feature that instead of outputting a single number for the prediction it outputs a heatmap directly for what the predictions are across the image.
 
-![alt text][image3]
+So, the "Sliding window" is done by allowing the Convolutions to run over the entire image.
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
-Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
+### Pipeline (single image)
 
-![alt text][image4]
----
+To start with I loaded a image from `./test_images/`
+
+![original][]
+
+#### 1. Crop
+
+The first step is to crop to only the area where cars will be in the image.  To do this I just use a simple slice on the y axis from `350` to `680`.
+
+![cropped][]
+
+#### 2. Heatmap
+
+The next step is to run this cropped image through the neural network in order to get the "heatmap" of where cars are in the image.
+
+![heatmap][]
+
+#### 3. Scale
+
+If you notice the <axis things> above, you'll see that the heatmap is actually much smaller since due to the network shrinking 64 to 1.  So, in order to rectify this the image needs to be scaled up to the size of the original cropped image.
+ 
+![scaled][]
+
+#### 4. Blur
+
+In order to avoid false positives, I then blur the image.  This helps in two ways, firstly any single spikes in the heatmap become less noticeable and secondly blobs of many high probability areas that are close together will maintain there peak.
+
+In this example you can see how the little spot on the left has become less prominent, but the center of the larger blobs on the right mantain there heat in the center.
+ 
+![blurred][]
+
+#### 5. Label
+
+Next, I label the blobs & do a little few sanity checks.  Firstly, I reject all blobs that have a peak lower than a certain threshold.  Secondly, I reject all blobs that are smaller than a threshold.  I also have a parameter for how deep the valleys must be between mountains in order to get a seperate label.
+ 
+![labeled][]
+
+
+#### 6. Calculate & Draw boxes.
+
+Lastly, given the labels from before I create rectangles around each of the labeled blobs and draw them onto the original cropped image.
+ 
+![boxes_cropped][]
+
+Or, if I shift the boxes down `350` to account for the cropping I can draw them on the original image:
+
+![boxes][]
+
 
 ### Video Implementation
 
@@ -82,21 +129,9 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
+In order to make use of time series images, I keep a cache of the heatmaps over time and instead of using the heatmaps directly I take a weighted average over the cached heatmaps.  This makes the assumption that cars don't teleport...  Also that they won't move really quickly.
 
-Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
-
-### Here are six frames and their corresponding heatmaps:
-
-![alt text][image5]
-
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
-
-### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][image7]
-
-
+<Insert images of time series heatmaps>*
 
 ---
 
@@ -104,5 +139,10 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+One issue I've noticed is that the detector seems to be really great at detecting the _back_ of cars, but is hit and miss with the sides of cars.  I suspect this is due to the dataset coming mostly from images taken on the highway where you see a lot more of the back of cars then there sides.
 
+Also, due to using a a time series cache, the boxes can seem to lag a few frames behind the images, this could be improved by instead of just doing a straight average by doing some sort of prediction of where the car should be and taking an average on that.
+
+Lastly, the reason I chose to use a neural network instead of standard machine learning classifiers was two fold, firstly I wanted more experience with deep learning, but also, I am way to lazy to tune all those parameters myself.
+
+* I apologize for the lack of images, unfortunately I had to create the writeup on a different computer than the project so I was limited to the visualizations I already had in the notebook.

@@ -44,12 +44,15 @@ Instead of using the HOG function provided by `cv2`, I used a Convolutional Neur
 
 _the entire network definition can be found in the `create_model()` function of the notebook_
 
-<insert visualization of the network>* (I tried to get a visualization of the network, but it was taking too long to figure out.)
+\<insert visualization of the network\>*
 
 I started by reading in all the `vehicle` and `non-vehicle` locations as a `glob`.  Then, iterated over that glob and loaded the images, converted them to RGB space and augmented them by flipping the images and randomly zooming in on part of the image in order to allow for more robust training and to allow the network to work well on different sized cars.
 
 _this augmentation can be found in the `agument()` function in the notebook.  (yes, I know I misspelled it)_
 
+Example images:
+
+![image1][]
 
 #### 2. Explain how you settled on your final choice of HOG parameters.
 
@@ -91,13 +94,13 @@ The next step is to run this cropped image through the neural network in order t
 
 #### 3. Scale
 
-If you notice the <axis things> above, you'll see that the heatmap is actually much smaller since due to the network shrinking 64 to 1.  So, in order to rectify this the image needs to be scaled up to the size of the original cropped image.
+If you notice the \<axis things\> above, you'll see that the heatmap is actually much smaller since due to the network shrinking 64 to 1.  So, in order to rectify this the image needs to be scaled up to the size of the original cropped image.
  
 ![scaled][]
 
 #### 4. Blur
 
-In order to avoid false positives, I then blur the image.  This helps in two ways, firstly any single spikes in the heatmap become less noticeable and secondly blobs of many high probability areas that are close together will maintain there peak.
+In order to avoid false positives, I then blur the image.  This helps in two ways, firstly any single spikes in the heatmap become less noticeable and secondly blobs of many high probability areas that are close together will maintain there peak.  It also helps connected nearby blobs that are probably the same car.
 
 In this example you can see how the little spot on the left has become less prominent, but the center of the larger blobs on the right mantain there heat in the center.
  
@@ -131,7 +134,7 @@ Here's a [link to my video result](./project_video.mp4)
 
 In order to make use of time series images, I keep a cache of the heatmaps over time and instead of using the heatmaps directly I take a weighted average over the cached heatmaps.  This makes the assumption that cars don't teleport...  Also that they won't move really quickly.
 
-<Insert images of time series heatmaps>*
+\<Insert images of time series heatmaps\>*
 
 ---
 
@@ -145,4 +148,4 @@ Also, due to using a a time series cache, the boxes can seem to lag a few frames
 
 Lastly, the reason I chose to use a neural network instead of standard machine learning classifiers was two fold, firstly I wanted more experience with deep learning, but also, I am way to lazy to tune all those parameters myself.
 
-* I apologize for the lack of images, unfortunately I had to create the writeup on a different computer than the project so I was limited to the visualizations I already had in the notebook.
+\* I apologize for the lack of images, unfortunately I had to create the writeup on a different computer than the project so I was limited to the visualizations I already had in the notebook.
